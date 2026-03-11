@@ -1,0 +1,11 @@
+{
+  "sections": {
+    "revenue": { "enabled": true, "source": "manual" },
+    "clients": { "enabled": true, "source": "manual" },
+    "pipeline": { "enabled": true, "source": "manual" },
+    "outreach": { "enabled": true, "source": "manual" },
+    "content": { "enabled": false, "source": null },
+    "goals": { "enabled": true, "source": "manual" },
+    "economics": { "enabled": true, "source": "manual" }
+  }
+}

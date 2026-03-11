@@ -2,7 +2,7 @@
 
 A real-time business dashboard you run locally — powered by Claude Code.
 
-Track your MRR, clients, pipeline, outreach, content performance, and goals in one place. Connects to Stripe and Instagram for live data, with manual modules for everything else.
+Track your MRR, clients, pipeline, outreach, content performance, and goals in one place. Pick which sections you want. For each one, choose whether to connect a live tool or enter data manually. Skip the rest.
 
 ---
 
@@ -10,8 +10,6 @@ Track your MRR, clients, pipeline, outreach, content performance, and goals in o
 
 1. **Claude Code** — Anthropic's AI coding tool that runs in your terminal. If you don't have it yet, install it first: [claude.ai/claude-code](https://claude.ai/claude-code)
 2. **Node.js** (v18+) — The runtime that powers the dashboard server. Download from [nodejs.org](https://nodejs.org) if you don't have it.
-3. **A Stripe account** (optional) — Only needed if you want live revenue data
-4. **An Instagram Business account** (optional) — Only needed if you want content metrics
 
 ---
 
@@ -36,38 +34,40 @@ git clone https://github.com/tenfoldmarc/business-dashboard ~/.claude/skills/bus
 
 That's it. Claude will walk you through everything from there:
 - Ask your business name
-- Let you pick which modules you want (revenue, clients, pipeline, etc.)
-- Help you connect Stripe and/or Instagram if you chose those
-- Fill in your starter data for manual modules
+- Let you pick which sections you want and how to power each one
+- Help you connect your chosen tools (Stripe, GHL, Instantly, Instagram)
+- Fill in starter data for manual sections
 - Launch the dashboard in your browser
 
 ---
 
 ## What You Get
 
-| Module | Data Source | What It Shows |
-|--------|-----------|---------------|
-| **Revenue** | Stripe (live) | MRR, monthly revenue, month-over-month comparisons |
-| **Content** | Instagram (live) | Followers, reach, engagement, top posts |
-| **Clients** | Manual (via Claude) | Active clients, health status, renewals |
-| **Pipeline** | Manual (via Claude) | Deal stages, win/loss rate, conversion |
-| **Outreach** | Manual (via Claude) | Emails sent, reply rate, cost per lead |
-| **Goals** | Manual (via Claude) | MRR targets, weekly/monthly goals + progress |
+| Section | Tool Options | What It Shows |
+|---------|-------------|---------------|
+| **Revenue** | Stripe (live) · Manual | MRR, monthly revenue, month-over-month comparisons |
+| **Clients** | GoHighLevel (live) · Manual | Active clients, health status, renewals |
+| **Pipeline** | GoHighLevel (live) · Manual | Deal stages, win/loss rate, conversion |
+| **Outreach** | Instantly.ai (live) · Manual | Emails sent, reply rate, cost per lead |
+| **Content** | Instagram (live) · Manual | Followers, reach, engagement, top posts |
+| **Goals** | Manual | MRR targets, weekly/monthly goals + progress |
+| **Economics** | Manual | LTV, CAC, unit economics |
 
-Pick the modules you need. Skip the rest. Add them later.
+Pick the sections you need. Skip the rest. Add them later. Switch between live and manual anytime.
 
 ---
 
 ## Updating Your Data
 
-For Stripe and Instagram — data updates automatically every time you refresh.
+For live tools (Stripe, GHL, Instantly, Instagram) — data updates automatically every time you refresh. API data is cached for 5 minutes.
 
-For manual modules (clients, pipeline, outreach, goals) — just tell Claude in plain English:
+For manual sections — just tell Claude in plain English:
 
 - "Add a new client: Acme Corp, $2,500/mo, started today"
 - "I booked 3 calls this week"
 - "Move the Johnson deal from proposal to closed won, $2,400/mo"
 - "Update my outreach numbers: 1,200 sent last week, 4.2% reply rate"
+- "Switch my clients section to GoHighLevel" (to change data sources)
 
 Claude updates your data and the dashboard reflects it on the next refresh.
 
@@ -89,15 +89,19 @@ business-dashboard/
 ├── README.md              ← You're here
 ├── install.sh             ← The installer script
 ├── SKILL.md               ← Claude Code skill (the interactive setup)
-├── .env.example           ← Shows what API keys are needed
+├── config.json            ← Which sections are enabled and their data source
+├── .env.example           ← Shows what API keys are available
 ├── data.json              ← Your manual data (clients, pipeline, etc.)
 ├── package.json           ← Zero external dependencies
 ├── template/
 │   ├── dashboard.html     ← The dashboard UI
-│   └── server.js          ← Local server that talks to Stripe + Instagram
+│   └── server.js          ← Local server (Stripe, GHL, Instantly, IG, Slack)
 └── setup-guides/
     ├── stripe-api-key.md  ← How to get your Stripe key
-    └── instagram-token.md ← How to get your Instagram token
+    ├── instagram-token.md ← How to get your Instagram token
+    ├── ghl-api-key.md     ← How to get your GHL key + Location ID
+    ├── instantly-api-key.md ← How to get your Instantly key
+    └── slack-bot-token.md ← How to set up Slack for client tracking
 ```
 
 ---

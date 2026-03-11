@@ -74,8 +74,16 @@ a{text-decoration:none;color:inherit;}
 
 /* ─── SECTION ─── */
 .section{margin-bottom:44px;scroll-margin-top:28px;}
-.sec-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;}
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
 .section.hidden{display:none;}
+
+/* ─── SOURCE BADGE ─── */
+.source-badge{font-size:9px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:4px;}
+.source-badge.live{background:rgba(21,128,61,0.08);color:var(--green);}
+.source-badge.manual{background:rgba(107,114,128,0.08);color:var(--text2);}
+.source-badge::before{content:'';width:5px;height:5px;border-radius:50%;}
+.source-badge.live::before{background:var(--green);box-shadow:0 0 4px rgba(21,128,61,0.5);}
+.source-badge.manual::before{background:var(--text3);}
 
 /* ─── CARD BASE ─── */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;}
@@ -345,7 +353,7 @@ a{text-decoration:none;color:inherit;}
 
     <!-- ─── GOALS ─── -->
     <div class="section" id="goals">
-      <div class="sec-label">Goals & Targets</div>
+      <div class="sec-label">Goals & Targets <span class="source-badge manual" id="badge-goals">Manual</span></div>
       <div class="goal-grid" id="goals-content">
         <div class="loading">Loading...</div>
       </div>
@@ -353,7 +361,7 @@ a{text-decoration:none;color:inherit;}
 
     <!-- ─── REVENUE ─── -->
     <div class="section" id="revenue">
-      <div class="sec-label">Revenue</div>
+      <div class="sec-label">Revenue <span class="source-badge manual" id="badge-revenue">Manual</span></div>
       <div id="revenue-content">
         <div class="loading">Loading revenue data...</div>
       </div>
@@ -361,7 +369,7 @@ a{text-decoration:none;color:inherit;}
 
     <!-- ─── PIPELINE ─── -->
     <div class="section" id="pipeline">
-      <div class="sec-label">Pipeline</div>
+      <div class="sec-label">Pipeline <span class="source-badge manual" id="badge-pipeline">Manual</span></div>
       <div id="pipeline-content">
         <div class="loading">Loading...</div>
       </div>
@@ -369,7 +377,7 @@ a{text-decoration:none;color:inherit;}
 
     <!-- ─── CLIENTS ─── -->
     <div class="section" id="clients">
-      <div class="sec-label">Client Health</div>
+      <div class="sec-label">Client Health <span class="source-badge manual" id="badge-clients">Manual</span></div>
       <div id="clients-content">
         <div class="loading">Loading...</div>
       </div>
@@ -377,7 +385,7 @@ a{text-decoration:none;color:inherit;}
 
     <!-- ─── ECONOMICS ─── -->
     <div class="section" id="economics">
-      <div class="sec-label">Unit Economics</div>
+      <div class="sec-label">Unit Economics <span class="source-badge manual" id="badge-economics">Manual</span></div>
       <div id="economics-content">
         <div class="loading">Loading...</div>
       </div>
@@ -385,7 +393,7 @@ a{text-decoration:none;color:inherit;}
 
     <!-- ─── OUTREACH ─── -->
     <div class="section" id="outreach">
-      <div class="sec-label">Outreach</div>
+      <div class="sec-label">Outreach <span class="source-badge manual" id="badge-outreach">Manual</span></div>
       <div id="outreach-content">
         <div class="loading">Loading...</div>
       </div>
@@ -393,7 +401,7 @@ a{text-decoration:none;color:inherit;}
 
     <!-- ─── CONTENT (Instagram) ─── -->
     <div class="section" id="content">
-      <div class="sec-label">Content Performance</div>
+      <div class="sec-label">Content Performance <span class="source-badge manual" id="badge-content">Manual</span></div>
       <div id="content-content">
         <div class="loading">Loading content data...</div>
       </div>
@@ -404,18 +412,26 @@ a{text-decoration:none;color:inherit;}
 
 <script>
 // ═══════════════════════════════════════════════════════
-// DASHBOARD CONFIG
-// ═══════════════════════════════════════════════════════
-// This is populated from data.json via the server.
-// To change settings, edit data.json or use Claude Code.
+// DASHBOARD — CONFIG-DRIVEN
 // ═══════════════════════════════════════════════════════
 
 let DATA = {};          // Manual data from data.json
 let STRIPE = {};        // Live Stripe data
 let IG = {};            // Live Instagram data
+let CONFIG = {};        // Section config from config.json
 let MODULES = {};       // Which modules are active
+let SOURCES = {};       // Data source per section
 
 const API = '';         // Server base URL (empty = same origin)
+
+// Source label mapping
+const SOURCE_LABELS = {
+  stripe: 'Live from Stripe',
+  ghl: 'Live from GHL',
+  instagram: 'Live from Instagram',
+  instantly: 'Live from Instantly',
+  manual: 'Manual',
+};
 
 // ═══════════════════════════════════════════════════════
 // UTILITIES
@@ -445,7 +461,7 @@ function sparkSVG(vals, clr='var(--accent)', w=80, h=28) {
 }
 
 // ═══════════════════════════════════════════════════════
-// DATA FETCHING
+// DATA FETCHING — CONFIG-DRIVEN
 // ═══════════════════════════════════════════════════════
 
 async function fetchJSON(url) {
@@ -459,38 +475,112 @@ async function fetchJSON(url) {
 }
 
 async function loadAllData() {
-  // Fetch everything in parallel
-  const [data, balance, txns, subs, disputes, igAccount, igMedia] = await Promise.all([
+  // Step 1: Load config + data.json in parallel
+  const [configData, data] = await Promise.all([
+    fetchJSON('/api/config'),
     fetchJSON('/api/data'),
-    fetchJSON('/api/stripe/balance'),
-    fetchJSON('/api/stripe/balance-transactions'),
-    fetchJSON('/api/stripe/subscriptions'),
-    fetchJSON('/api/stripe/disputes'),
-    fetchJSON('/api/ig/account'),
-    fetchJSON('/api/ig/media'),
   ]);
 
+  CONFIG = configData;
   DATA = data;
+  const sections = CONFIG.sections || {};
 
-  // Determine which modules are active
-  MODULES = {
-    revenue:   !balance.error && balance.available !== false,
-    content:   !igAccount.error && igAccount.available !== false,
-    clients:   DATA.clients?.list?.length > 0,
-    pipeline:  DATA.pipeline?.stages?.some(s => s.count > 0),
-    outreach:  DATA.outreach?.sentLast30 > 0,
-    economics: DATA.economics?.avgClientMrr > 0,
-    goals:     DATA.goals?.mrrTarget > 0,
-  };
+  // Step 2: Build fetches based on config
+  const fetches = {};
 
-  // Process Stripe data
-  if (MODULES.revenue) {
-    STRIPE = processStripeData(txns.data || [], subs.data || [], disputes.data || []);
+  if (sections.revenue?.enabled && sections.revenue?.source === 'stripe') {
+    fetches.balance = fetchJSON('/api/stripe/balance');
+    fetches.txns = fetchJSON('/api/stripe/balance-transactions');
+    fetches.subs = fetchJSON('/api/stripe/subscriptions');
+    fetches.disputes = fetchJSON('/api/stripe/disputes');
   }
 
-  // Process IG data
-  if (MODULES.content) {
-    IG = { account: igAccount, posts: igMedia.data || [] };
+  if (sections.clients?.enabled && sections.clients?.source === 'ghl') {
+    fetches.ghlClients = fetchJSON('/api/ghl/clients');
+  }
+
+  if (sections.pipeline?.enabled && sections.pipeline?.source === 'ghl') {
+    fetches.ghlPipeline = fetchJSON('/api/ghl/pipeline');
+  }
+
+  if (sections.outreach?.enabled && sections.outreach?.source === 'instantly') {
+    fetches.instantlyOutreach = fetchJSON('/api/instantly/outreach');
+  }
+
+  if (sections.content?.enabled && sections.content?.source === 'instagram') {
+    fetches.igAccount = fetchJSON('/api/ig/account');
+    fetches.igMedia = fetchJSON('/api/ig/media');
+  }
+
+  // Resolve all fetches
+  const keys = Object.keys(fetches);
+  const values = await Promise.all(Object.values(fetches));
+  const results = {};
+  keys.forEach((k, i) => results[k] = values[i]);
+
+  // Step 3: Determine module visibility from config
+  MODULES = {
+    revenue:   sections.revenue?.enabled || false,
+    clients:   sections.clients?.enabled || false,
+    pipeline:  sections.pipeline?.enabled || false,
+    outreach:  sections.outreach?.enabled || false,
+    content:   sections.content?.enabled || false,
+    goals:     sections.goals?.enabled || false,
+    economics: sections.economics?.enabled || false,
+  };
+
+  // Record sources
+  SOURCES = {
+    revenue:   sections.revenue?.source || 'manual',
+    clients:   sections.clients?.source || 'manual',
+    pipeline:  sections.pipeline?.source || 'manual',
+    outreach:  sections.outreach?.source || 'manual',
+    content:   sections.content?.source || 'manual',
+    goals:     'manual',
+    economics: 'manual',
+  };
+
+  // Step 4: Process Stripe data
+  if (SOURCES.revenue === 'stripe' && results.balance && results.balance.available !== false && !results.balance.error) {
+    STRIPE = processStripeData(results.txns?.data || [], results.subs?.data || [], results.disputes?.data || []);
+  }
+
+  // Step 5: Process Instagram data
+  if (SOURCES.content === 'instagram' && results.igAccount && results.igAccount.available !== false && !results.igAccount.error) {
+    IG = { account: results.igAccount, posts: results.igMedia?.data || [] };
+  }
+
+  // Step 6: Merge GHL client data
+  if (SOURCES.clients === 'ghl' && results.ghlClients?.available) {
+    DATA.clients = { list: results.ghlClients.list, source: 'ghl' };
+  }
+
+  // Step 7: Merge GHL pipeline data
+  if (SOURCES.pipeline === 'ghl' && results.ghlPipeline?.available) {
+    DATA.pipeline = {
+      stages: results.ghlPipeline.stages,
+      wonThisMonth: results.ghlPipeline.wonThisMonth,
+      wonValue: results.ghlPipeline.wonValue,
+      lostThisMonth: results.ghlPipeline.lostThisMonth,
+      lostValue: results.ghlPipeline.lostValue,
+      conversionRate: results.ghlPipeline.conversionRate,
+      avgDaysToClose: results.ghlPipeline.avgDaysToClose,
+      source: 'ghl',
+    };
+  }
+
+  // Step 8: Merge Instantly outreach data
+  if (SOURCES.outreach === 'instantly' && results.instantlyOutreach?.available) {
+    DATA.outreach = {
+      sentLast7: results.instantlyOutreach.sentLast7,
+      sentLast30: results.instantlyOutreach.sentLast30,
+      openRate: results.instantlyOutreach.openRate,
+      replyRate: results.instantlyOutreach.replyRate,
+      positiveReplyRate: results.instantlyOutreach.positiveReplyRate,
+      costPerLead: results.instantlyOutreach.costPerLead,
+      costPerCall: results.instantlyOutreach.costPerCall,
+      source: 'instantly',
+    };
   }
 
   return true;
@@ -514,9 +604,9 @@ function processStripeData(txns, subs, disputes) {
       else if (interval === 'week') mrr += amount * 4;
     }
   });
-  mrr = Math.round(mrr / 100); // cents to dollars
+  mrr = Math.round(mrr / 100);
 
-  // Revenue this month vs last month from balance transactions
+  // Revenue this month vs last month
   let revenueThisMonth = 0, revenueLastMonth = 0;
   txns.forEach(t => {
     if (t.type !== 'charge' && t.type !== 'payment') return;
@@ -530,8 +620,8 @@ function processStripeData(txns, subs, disputes) {
   revenueThisMonth = Math.round(revenueThisMonth / 100);
   revenueLastMonth = Math.round(revenueLastMonth / 100);
 
-  // Count new subs this month (new MRR) and estimate churn
-  let newMrr = 0, churnedValue = 0, churnCount = 0;
+  // New MRR this month
+  let newMrr = 0;
   subs.forEach(s => {
     const created = new Date(s.created * 1000);
     if (created.getMonth() === thisMonth && created.getFullYear() === thisYear) {
@@ -541,8 +631,7 @@ function processStripeData(txns, subs, disputes) {
   });
   newMrr = Math.round(newMrr / 100);
 
-  // Estimate last month MRR (current - new + churned)
-  const mrrLastMonth = mrr - newMrr + churnedValue;
+  const mrrLastMonth = mrr - newMrr;
 
   return {
     mrr,
@@ -550,8 +639,8 @@ function processStripeData(txns, subs, disputes) {
     revenueThisMonth,
     revenueLastMonth,
     newMrr,
-    churnedValue,
-    churnCount,
+    churnedValue: 0,
+    churnCount: 0,
     disputes: disputes.length,
     subscriptionCount: subs.length,
   };
@@ -599,6 +688,9 @@ function renderAll() {
   if (!hasFinancials) document.getElementById('nav-section-financials')?.classList.add('hidden');
   if (!hasOperations) document.getElementById('nav-section-operations')?.classList.add('hidden');
 
+  // Update source badges
+  updateBadges();
+
   renderHero();
   if (MODULES.goals)     renderGoals();
   if (MODULES.revenue)   renderRevenue();
@@ -607,6 +699,26 @@ function renderAll() {
   if (MODULES.economics) renderEconomics();
   if (MODULES.outreach)  renderOutreach();
   if (MODULES.content)   renderContent();
+}
+
+function updateBadges() {
+  const badgeMap = {
+    revenue: 'badge-revenue',
+    clients: 'badge-clients',
+    pipeline: 'badge-pipeline',
+    outreach: 'badge-outreach',
+    content: 'badge-content',
+    goals: 'badge-goals',
+    economics: 'badge-economics',
+  };
+  for (const [section, badgeId] of Object.entries(badgeMap)) {
+    const el = document.getElementById(badgeId);
+    if (!el) continue;
+    const source = SOURCES[section] || 'manual';
+    const isLive = source !== 'manual' && source !== null;
+    el.className = `source-badge ${isLive ? 'live' : 'manual'}`;
+    el.textContent = SOURCE_LABELS[source] || 'Manual';
+  }
 }
 
 function toggleSection(id, show) {
@@ -623,28 +735,38 @@ function renderHero() {
   let cards = [];
 
   if (MODULES.revenue) {
-    cards.push(`
-      <div class="hero-card">
-        <div class="hero-label">Monthly Recurring Revenue</div>
-        <div class="hero-number mono">${fmt$(STRIPE.mrr)}</div>
-        <div><span class="hero-delta ${STRIPE.mrr > STRIPE.mrrLastMonth ? 'up' : STRIPE.mrr < STRIPE.mrrLastMonth ? 'down' : 'neutral'}">
-          ${STRIPE.mrrLastMonth > 0 ? (STRIPE.mrr > STRIPE.mrrLastMonth ? '↑' : '↓') + ' ' + Math.abs(pctChange(STRIPE.mrr, STRIPE.mrrLastMonth)) + '% MoM' : STRIPE.subscriptionCount + ' active subs'}
-        </span></div>
-      </div>`);
-    cards.push(`
-      <div class="hero-card">
-        <div class="hero-label">Revenue This Month</div>
-        <div class="hero-number mono">${fmt$(STRIPE.revenueThisMonth)}</div>
-        <div><span class="hero-delta ${STRIPE.revenueThisMonth > STRIPE.revenueLastMonth ? 'up' : 'neutral'}">
-          ${STRIPE.revenueLastMonth > 0 ? pctChange(STRIPE.revenueThisMonth, STRIPE.revenueLastMonth) + '% vs last month' : 'collecting'}
-        </span></div>
-      </div>`);
+    if (SOURCES.revenue === 'stripe' && STRIPE.mrr !== undefined) {
+      cards.push(`
+        <div class="hero-card">
+          <div class="hero-label">Monthly Recurring Revenue</div>
+          <div class="hero-number mono">${fmt$(STRIPE.mrr)}</div>
+          <div><span class="hero-delta ${STRIPE.mrr > STRIPE.mrrLastMonth ? 'up' : STRIPE.mrr < STRIPE.mrrLastMonth ? 'down' : 'neutral'}">
+            ${STRIPE.mrrLastMonth > 0 ? (STRIPE.mrr > STRIPE.mrrLastMonth ? '↑' : '↓') + ' ' + Math.abs(pctChange(STRIPE.mrr, STRIPE.mrrLastMonth)) + '% MoM' : STRIPE.subscriptionCount + ' active subs'}
+          </span></div>
+        </div>`);
+      cards.push(`
+        <div class="hero-card">
+          <div class="hero-label">Revenue This Month</div>
+          <div class="hero-number mono">${fmt$(STRIPE.revenueThisMonth)}</div>
+          <div><span class="hero-delta ${STRIPE.revenueThisMonth > STRIPE.revenueLastMonth ? 'up' : 'neutral'}">
+            ${STRIPE.revenueLastMonth > 0 ? pctChange(STRIPE.revenueThisMonth, STRIPE.revenueLastMonth) + '% vs last month' : 'collecting'}
+          </span></div>
+        </div>`);
+    } else {
+      // Manual revenue — show from data.json goals if available
+      cards.push(`
+        <div class="hero-card">
+          <div class="hero-label">Revenue</div>
+          <div class="hero-number mono">${fmt$(DATA.goals?.mrrTarget || 0)}</div>
+          <div><span class="hero-delta neutral">target MRR</span></div>
+        </div>`);
+    }
   }
 
   if (MODULES.clients) {
     const cl = DATA.clients;
-    const total = cl.list.length;
-    const newCount = cl.list.filter(c => {
+    const total = (cl?.list || []).length;
+    const newCount = (cl?.list || []).filter(c => {
       const d = new Date(c.since);
       const now = new Date();
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -653,13 +775,14 @@ function renderHero() {
       <div class="hero-card">
         <div class="hero-label">Active Clients</div>
         <div class="hero-number">${total}</div>
-        <div><span class="hero-delta ${newCount > 0 ? 'up' : 'neutral'}">${newCount > 0 ? '+' + newCount + ' this month' : 'stable'}</span></div>
+        <div><span class="hero-delta ${newCount > 0 ? 'up' : 'neutral'}">${newCount > 0 ? '+' + newCount + ' this month' : total > 0 ? 'stable' : 'none yet'}</span></div>
       </div>`);
   }
 
   if (MODULES.pipeline) {
-    const totalValue = DATA.pipeline.stages.reduce((a, s) => a + s.value, 0);
-    const totalDeals = DATA.pipeline.stages.reduce((a, s) => a + s.count, 0);
+    const p = DATA.pipeline || {};
+    const totalValue = (p.stages || []).reduce((a, s) => a + s.value, 0);
+    const totalDeals = (p.stages || []).reduce((a, s) => a + s.count, 0);
     cards.push(`
       <div class="hero-card">
         <div class="hero-label">Open Pipeline</div>
@@ -669,16 +792,16 @@ function renderHero() {
   }
 
   if (MODULES.outreach) {
-    const o = DATA.outreach;
+    const o = DATA.outreach || {};
     cards.push(`
       <div class="hero-card">
         <div class="hero-label">Email Reply Rate</div>
-        <div class="hero-number mono">${fmtPct(o.replyRate)}</div>
-        <div><span class="hero-delta ${o.replyRate >= 3 ? 'up' : o.replyRate >= 2 ? 'amber' : 'down'}">${o.replyRate >= 3 ? '↑ above benchmark' : 'below 3% target'}</span></div>
+        <div class="hero-number mono">${fmtPct(o.replyRate || 0)}</div>
+        <div><span class="hero-delta ${(o.replyRate || 0) >= 3 ? 'up' : (o.replyRate || 0) >= 2 ? 'amber' : 'down'}">${(o.replyRate || 0) >= 3 ? '↑ above benchmark' : 'below 3% target'}</span></div>
       </div>`);
   }
 
-  if (MODULES.content && IG.account) {
+  if (MODULES.content && SOURCES.content === 'instagram' && IG.account) {
     cards.push(`
       <div class="hero-card">
         <div class="hero-label">Instagram Followers</div>
@@ -693,7 +816,7 @@ function renderHero() {
       <div class="hero-card" style="grid-column:1/-1;text-align:center;padding:40px;">
         <div class="hero-label">Welcome</div>
         <div style="font-size:16px;font-weight:600;margin-top:10px;">Connect your first data source to see metrics here</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:8px;">Run the setup skill in Claude Code to connect Stripe, Instagram, or add manual data</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:8px;">Run the setup skill in Claude Code to connect Stripe, GHL, Instantly, Instagram, or add manual data</div>
       </div>`);
   }
 
@@ -702,16 +825,16 @@ function renderHero() {
 
 // ── GOALS ──
 function renderGoals() {
-  const g = DATA.goals;
-  const currentMrr = MODULES.revenue ? STRIPE.mrr : 0;
+  const g = DATA.goals || {};
+  const currentMrr = (SOURCES.revenue === 'stripe' && STRIPE.mrr !== undefined) ? STRIPE.mrr : 0;
   const currentPct = g.mrrTarget > 0 ? (currentMrr / g.mrrTarget * 100) : 0;
   const gap = g.mrrTarget - currentMrr;
-  const onTrack = currentPct >= 70; // simplified
+  const onTrack = currentPct >= 70;
 
   document.getElementById('goals-content').innerHTML = `
     <div class="goal-main">
       <div class="goal-headline">
-        <div class="goal-title">MRR Goal: ${fmt$(g.mrrTarget)} by ${g.mrrDeadline}</div>
+        <div class="goal-title">MRR Goal: ${fmt$(g.mrrTarget || 0)} by ${g.mrrDeadline || 'TBD'}</div>
         <span class="goal-verdict ${onTrack ? 'on-track' : 'at-risk'}">${onTrack ? 'ON TRACK' : 'AT RISK'}</span>
       </div>
       <div class="goal-subtitle">${gap > 0 ? fmt$(gap) + ' gap remaining · ' + (100 - currentPct).toFixed(0) + '% to go' : 'Goal reached!'}</div>
@@ -721,29 +844,37 @@ function renderGoals() {
       </div>
       <div class="goal-numbers">
         <span><strong>${fmt$(currentMrr)}</strong> current (${currentPct.toFixed(0)}%)</span>
-        <span><strong>${fmt$(g.mrrTarget)}</strong> target</span>
+        <span><strong>${fmt$(g.mrrTarget || 0)}</strong> target</span>
       </div>
     </div>
     <div class="goal-mini">
       <div class="goal-mini-label">Calls / Week</div>
-      <div class="goal-mini-value" style="color:${g.callsPerWeekActual >= g.callsPerWeekTarget * 0.8 ? 'var(--green)' : 'var(--amber)'}">
-        ${g.callsPerWeekActual}<span style="font-size:14px;color:var(--text2);font-weight:400"> / ${g.callsPerWeekTarget}</span>
+      <div class="goal-mini-value" style="color:${(g.callsPerWeekActual || 0) >= (g.callsPerWeekTarget || 1) * 0.8 ? 'var(--green)' : 'var(--amber)'}">
+        ${g.callsPerWeekActual || 0}<span style="font-size:14px;color:var(--text2);font-weight:400"> / ${g.callsPerWeekTarget || 0}</span>
       </div>
-      <div class="goal-mini-sub">${g.callsPerWeekTarget > 0 ? Math.round(g.callsPerWeekActual / g.callsPerWeekTarget * 100) : 0}% of target</div>
-      <div class="goal-mini-bar"><div class="goal-mini-bar-fill" style="width:${g.callsPerWeekTarget > 0 ? Math.min(g.callsPerWeekActual / g.callsPerWeekTarget * 100, 100) : 0}%"></div></div>
+      <div class="goal-mini-sub">${(g.callsPerWeekTarget || 0) > 0 ? Math.round((g.callsPerWeekActual || 0) / g.callsPerWeekTarget * 100) : 0}% of target</div>
+      <div class="goal-mini-bar"><div class="goal-mini-bar-fill" style="width:${(g.callsPerWeekTarget || 0) > 0 ? Math.min((g.callsPerWeekActual || 0) / g.callsPerWeekTarget * 100, 100) : 0}%"></div></div>
     </div>
     <div class="goal-mini">
       <div class="goal-mini-label">New Clients / Month</div>
-      <div class="goal-mini-value" style="color:${g.newClientsMonthActual >= g.newClientsMonthTarget ? 'var(--green)' : 'var(--amber)'}">
-        ${g.newClientsMonthActual}<span style="font-size:14px;color:var(--text2);font-weight:400"> / ${g.newClientsMonthTarget}</span>
+      <div class="goal-mini-value" style="color:${(g.newClientsMonthActual || 0) >= (g.newClientsMonthTarget || 1) ? 'var(--green)' : 'var(--amber)'}">
+        ${g.newClientsMonthActual || 0}<span style="font-size:14px;color:var(--text2);font-weight:400"> / ${g.newClientsMonthTarget || 0}</span>
       </div>
-      <div class="goal-mini-sub">${g.newClientsMonthTarget > 0 ? Math.round(g.newClientsMonthActual / g.newClientsMonthTarget * 100) : 0}% of target</div>
-      <div class="goal-mini-bar"><div class="goal-mini-bar-fill" style="width:${g.newClientsMonthTarget > 0 ? Math.min(g.newClientsMonthActual / g.newClientsMonthTarget * 100, 100) : 0}%"></div></div>
+      <div class="goal-mini-sub">${(g.newClientsMonthTarget || 0) > 0 ? Math.round((g.newClientsMonthActual || 0) / g.newClientsMonthTarget * 100) : 0}% of target</div>
+      <div class="goal-mini-bar"><div class="goal-mini-bar-fill" style="width:${(g.newClientsMonthTarget || 0) > 0 ? Math.min((g.newClientsMonthActual || 0) / g.newClientsMonthTarget * 100, 100) : 0}%"></div></div>
     </div>`;
 }
 
-// ── REVENUE (Stripe) ──
+// ── REVENUE (Stripe or Manual) ──
 function renderRevenue() {
+  if (SOURCES.revenue === 'stripe' && STRIPE.mrr !== undefined) {
+    renderStripeRevenue();
+  } else {
+    renderManualRevenue();
+  }
+}
+
+function renderStripeRevenue() {
   const s = STRIPE;
   const maxRev = Math.max(s.revenueThisMonth, s.revenueLastMonth, 1);
 
@@ -790,12 +921,31 @@ function renderRevenue() {
     </div>`;
 }
 
+function renderManualRevenue() {
+  document.getElementById('revenue-content').innerHTML = `
+    <div class="card" style="text-align:center;padding:40px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text2);">Revenue data is manual</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;">Tell Claude your revenue numbers to populate this section, or connect Stripe for live data</div>
+    </div>`;
+}
+
 // ── PIPELINE ──
 function renderPipeline() {
-  const p = DATA.pipeline;
-  const maxVal = Math.max(...p.stages.map(s => s.value), 1);
+  const p = DATA.pipeline || {};
+  const stages = p.stages || [];
 
-  const stagesHTML = p.stages.map(s => {
+  if (stages.length === 0 || stages.every(s => s.count === 0)) {
+    document.getElementById('pipeline-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:40px;">
+        <div style="font-size:14px;font-weight:600;color:var(--text2);">No pipeline data yet</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Tell Claude about your deals${SOURCES.pipeline === 'ghl' ? ' or check your GHL connection' : ''}</div>
+      </div>`;
+    return;
+  }
+
+  const maxVal = Math.max(...stages.map(s => s.value), 1);
+
+  const stagesHTML = stages.map(s => {
     const pct = (s.value / maxVal * 100).toFixed(1);
     const won = s.name.toLowerCase().includes('won') || s.name.toLowerCase().includes('closed');
     return `<div class="funnel-stage">
@@ -812,9 +962,9 @@ function renderPipeline() {
       ${stagesHTML}
       <div class="pipeline-bottom">
         <div class="pipeline-stats">
-          <div class="pstat"><div class="pstat-label">Won This Month</div><div class="pstat-value green">${fmt$(p.wonValue)}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">${p.wonThisMonth} deals</div></div>
-          <div class="pstat"><div class="pstat-label">Lost This Month</div><div class="pstat-value red">${fmt$(p.lostValue)}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">${p.lostThisMonth} deals</div></div>
-          <div class="pstat"><div class="pstat-label">Conversion</div><div class="pstat-value blue">${p.conversionRate}%</div><div style="font-size:11px;color:var(--text2);margin-top:4px">${p.avgDaysToClose > 0 ? 'avg ' + p.avgDaysToClose + 'd to close' : '—'}</div></div>
+          <div class="pstat"><div class="pstat-label">Won This Month</div><div class="pstat-value green">${fmt$(p.wonValue || 0)}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">${p.wonThisMonth || 0} deals</div></div>
+          <div class="pstat"><div class="pstat-label">Lost This Month</div><div class="pstat-value red">${fmt$(p.lostValue || 0)}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">${p.lostThisMonth || 0} deals</div></div>
+          <div class="pstat"><div class="pstat-label">Conversion</div><div class="pstat-value blue">${p.conversionRate || 0}%</div><div style="font-size:11px;color:var(--text2);margin-top:4px">${(p.avgDaysToClose || 0) > 0 ? 'avg ' + p.avgDaysToClose + 'd to close' : '—'}</div></div>
         </div>
       </div>
     </div>`;
@@ -822,14 +972,25 @@ function renderPipeline() {
 
 // ── CLIENTS ──
 function renderClients() {
-  const cl = DATA.clients;
+  const cl = DATA.clients || {};
+  const list = cl.list || [];
+
+  if (list.length === 0) {
+    document.getElementById('clients-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:40px;">
+        <div style="font-size:14px;font-weight:600;color:var(--text2);">No clients yet</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Tell Claude about your clients${SOURCES.clients === 'ghl' ? ' or check your GHL connection' : ''}</div>
+      </div>`;
+    return;
+  }
+
   const order = { red: 0, amber: 1, green: 2 };
-  const sorted = [...cl.list].sort((a, b) => (order[a.health] || 2) - (order[b.health] || 2) || new Date(b.since) - new Date(a.since));
+  const sorted = [...list].sort((a, b) => (order[a.health] || 2) - (order[b.health] || 2) || new Date(b.since) - new Date(a.since));
 
   const now = new Date();
   document.getElementById('clients-content').innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;background:var(--adim);color:var(--accent)">${cl.list.length} active</span>
+      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;background:var(--adim);color:var(--accent)">${list.length} active</span>
     </div>
     <div class="clients-grid">${sorted.map(c => {
       const days = daysSince(c.since);
@@ -854,7 +1015,17 @@ function renderClients() {
 
 // ── ECONOMICS ──
 function renderEconomics() {
-  const e = DATA.economics;
+  const e = DATA.economics || {};
+
+  if (!e.avgClientMrr) {
+    document.getElementById('economics-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:40px;">
+        <div style="font-size:14px;font-weight:600;color:var(--text2);">No economics data yet</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Tell Claude your average client MRR, lifetime, and acquisition cost</div>
+      </div>`;
+    return;
+  }
+
   const ltv = e.avgClientMrr * e.avgClientLifetimeMonths;
   const ratio = e.costToAcquire > 0 ? Math.round(ltv / e.costToAcquire) : 0;
 
@@ -874,36 +1045,56 @@ function renderEconomics() {
 
 // ── OUTREACH ──
 function renderOutreach() {
-  const o = DATA.outreach;
-  const rClr = o.replyRate >= 3 ? 'green' : o.replyRate >= 2 ? 'amber' : 'red';
-  const pClr = o.positiveReplyRate >= 2 ? 'green' : o.positiveReplyRate >= 1 ? 'amber' : 'red';
+  const o = DATA.outreach || {};
 
-  document.getElementById('outreach-content').innerHTML = `
-    <div class="outreach-grid">
-      <div class="outreach-card"><div class="outreach-label">Sent (7 days)</div><div class="outreach-value mono">${o.sentLast7.toLocaleString()}</div><div class="outreach-sub">emails</div></div>
-      <div class="outreach-card"><div class="outreach-label">Sent (30 days)</div><div class="outreach-value mono">${o.sentLast30.toLocaleString()}</div><div class="outreach-sub">emails</div></div>
-      <div class="outreach-card"><div class="outreach-label">Open Rate</div><div class="outreach-value mono amber">${fmtPct(o.openRate)}</div><div class="outreach-sub">benchmark: 35%</div></div>
-      <div class="outreach-card"><div class="outreach-label">Reply Rate</div><div class="outreach-value mono ${rClr}">${fmtPct(o.replyRate)}</div><div class="outreach-sub">benchmark: 3%</div></div>
-      <div class="outreach-card"><div class="outreach-label">Positive Reply</div><div class="outreach-value mono ${pClr}">${fmtPct(o.positiveReplyRate)}</div><div class="outreach-sub">of all replies</div></div>
-    </div>
-    ${o.costPerLead > 0 || o.costPerCall > 0 ? `
-    <div class="cost-grid">
-      ${o.costPerLead > 0 ? '<div class="card"><div class="outreach-label">Cost per Lead</div><div class="outreach-value mono green">$' + o.costPerLead.toFixed(3) + '</div><div class="outreach-sub">per email sent</div></div>' : ''}
-      ${o.costPerCall > 0 ? '<div class="card"><div class="outreach-label">Cost per Booked Call</div><div class="outreach-value mono green">$' + o.costPerCall.toFixed(2) + '</div><div class="outreach-sub">per call booked</div></div>' : ''}
-    </div>` : ''}`;
-}
-
-// ── CONTENT (Instagram) ──
-function renderContent() {
-  if (!IG.account || !IG.posts) {
-    document.getElementById('content-content').innerHTML = '<div class="error-msg">Instagram not connected</div>';
+  if (!o.sentLast30) {
+    document.getElementById('outreach-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:40px;">
+        <div style="font-size:14px;font-weight:600;color:var(--text2);">No outreach data yet</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Tell Claude your outreach numbers${SOURCES.outreach === 'instantly' ? ' or check your Instantly connection' : ''}</div>
+      </div>`;
     return;
   }
 
-  const acc = IG.account;
-  const posts = IG.posts.slice(0, 10); // Show latest 10
+  const rClr = (o.replyRate || 0) >= 3 ? 'green' : (o.replyRate || 0) >= 2 ? 'amber' : 'red';
+  const pClr = (o.positiveReplyRate || 0) >= 2 ? 'green' : (o.positiveReplyRate || 0) >= 1 ? 'amber' : 'red';
 
-  // Aggregate stats
+  document.getElementById('outreach-content').innerHTML = `
+    <div class="outreach-grid">
+      <div class="outreach-card"><div class="outreach-label">Sent (7 days)</div><div class="outreach-value mono">${(o.sentLast7 || 0).toLocaleString()}</div><div class="outreach-sub">emails</div></div>
+      <div class="outreach-card"><div class="outreach-label">Sent (30 days)</div><div class="outreach-value mono">${(o.sentLast30 || 0).toLocaleString()}</div><div class="outreach-sub">emails</div></div>
+      <div class="outreach-card"><div class="outreach-label">Open Rate</div><div class="outreach-value mono amber">${fmtPct(o.openRate || 0)}</div><div class="outreach-sub">benchmark: 35%</div></div>
+      <div class="outreach-card"><div class="outreach-label">Reply Rate</div><div class="outreach-value mono ${rClr}">${fmtPct(o.replyRate || 0)}</div><div class="outreach-sub">benchmark: 3%</div></div>
+      <div class="outreach-card"><div class="outreach-label">Positive Reply</div><div class="outreach-value mono ${pClr}">${fmtPct(o.positiveReplyRate || 0)}</div><div class="outreach-sub">of all replies</div></div>
+    </div>
+    ${(o.costPerLead || 0) > 0 || (o.costPerCall || 0) > 0 ? `
+    <div class="cost-grid">
+      ${(o.costPerLead || 0) > 0 ? '<div class="card"><div class="outreach-label">Cost per Lead</div><div class="outreach-value mono green">$' + o.costPerLead.toFixed(3) + '</div><div class="outreach-sub">per email sent</div></div>' : ''}
+      ${(o.costPerCall || 0) > 0 ? '<div class="card"><div class="outreach-label">Cost per Booked Call</div><div class="outreach-value mono green">$' + o.costPerCall.toFixed(2) + '</div><div class="outreach-sub">per call booked</div></div>' : ''}
+    </div>` : ''}`;
+}
+
+// ── CONTENT (Instagram or Manual) ──
+function renderContent() {
+  if (SOURCES.content === 'instagram') {
+    if (!IG.account || !IG.posts) {
+      document.getElementById('content-content').innerHTML = '<div class="error-msg">Instagram not connected — check your access token</div>';
+      return;
+    }
+    renderInstagramContent();
+  } else {
+    document.getElementById('content-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:40px;">
+        <div style="font-size:14px;font-weight:600;color:var(--text2);">Content tracking is manual</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Connect Instagram for live data, or tell Claude your content metrics</div>
+      </div>`;
+  }
+}
+
+function renderInstagramContent() {
+  const acc = IG.account;
+  const posts = IG.posts.slice(0, 10);
+
   let totalReach = 0, totalInteractions = 0;
   posts.forEach(p => {
     totalReach += p.insights?.reach || 0;
