@@ -1,0 +1,45 @@
+{
+  "business": {
+    "name": "My Business",
+    "tagline": "Business Intelligence"
+  },
+  "goals": {
+    "mrrTarget": 10000,
+    "mrrDeadline": "December 2026",
+    "callsPerWeekTarget": 10,
+    "callsPerWeekActual": 0,
+    "newClientsMonthTarget": 3,
+    "newClientsMonthActual": 0
+  },
+  "clients": {
+    "list": []
+  },
+  "pipeline": {
+    "stages": [
+      { "name": "New Lead", "count": 0, "value": 0 },
+      { "name": "Call Booked", "count": 0, "value": 0 },
+      { "name": "Proposal Sent", "count": 0, "value": 0 },
+      { "name": "Closed Won", "count": 0, "value": 0 }
+    ],
+    "wonThisMonth": 0,
+    "wonValue": 0,
+    "lostThisMonth": 0,
+    "lostValue": 0,
+    "conversionRate": 0,
+    "avgDaysToClose": 0
+  },
+  "outreach": {
+    "sentLast7": 0,
+    "sentLast30": 0,
+    "openRate": 0,
+    "replyRate": 0,
+    "positiveReplyRate": 0,
+    "costPerLead": 0,
+    "costPerCall": 0
+  },
+  "economics": {
+    "avgClientMrr": 0,
+    "avgClientLifetimeMonths": 0,
+    "costToAcquire": 0
+  }
+}

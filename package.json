@@ -1,0 +1,11 @@
+{
+  "name": "business-dashboard",
+  "version": "1.0.0",
+  "description": "Business Insights Dashboard — built with Claude Code",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["dashboard", "business", "stripe", "instagram"],
+  "license": "MIT"
+}
