@@ -59,17 +59,24 @@ Pick the sections you need. Skip the rest. Add them later. Switch between live a
 
 ## Updating Your Data
 
-For live tools (Stripe, GHL, Instantly, Instagram) — data updates automatically every time you refresh. API data is cached for 5 minutes.
+**Connect a tool and it's fully automatic.** When you hook up Stripe, GoHighLevel, Instantly, or Instagram — that section pulls fresh data from the API every time you refresh. No manual entry, no copy-pasting numbers. API data is cached for 5 minutes to avoid rate limits.
 
-For manual sections — just tell Claude in plain English:
+**Manual sections are conversational.** For any section you don't connect to a tool, just tell Claude what changed in plain English:
 
 - "Add a new client: Acme Corp, $2,500/mo, started today"
 - "I booked 3 calls this week"
 - "Move the Johnson deal from proposal to closed won, $2,400/mo"
 - "Update my outreach numbers: 1,200 sent last week, 4.2% reply rate"
-- "Switch my clients section to GoHighLevel" (to change data sources)
 
-Claude updates your data and the dashboard reflects it on the next refresh.
+Claude updates `data.json` and the dashboard reflects it on the next refresh.
+
+**You can switch anytime.** Start manual, connect a tool later — or the other way around:
+
+- "Switch my clients section to GoHighLevel"
+- "Connect Stripe to my revenue section"
+- "Switch pipeline back to manual"
+
+Claude will walk you through connecting the API key and update your config.
 
 ---
 
